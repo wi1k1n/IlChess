@@ -67,31 +67,43 @@ class ilChessBoard(object):
 	def render(self):
 		screen = self.gui.screen
 		
+		# Draw each cell of board
 		for i, r in enumerate(self.pcs):
 			for j, p in enumerate(r):
+				# Choose background color
 				if p.chosen: bgColor = self.bgColorChosenBlack if (i + j) % 2 == 0 else self.bgColorChosenWhite
 				elif p.moveAvail: bgColor = self.bgColorMoveBlack if (i + j) % 2 == 0 else self.bgColorMoveWhite
 				else: bgColor = self.bgColorBlack if (i + j) % 2 == 0 else self.bgColorWhite
 
 				pygame.draw.rect(screen, bgColor, \
 					(self.rect.left + self.pcWidth * j, self.rect.bottom - self.pcWidth * (i + 1), self.pcWidth, self.pcWidth), 0)
+				
+				# Draw piece if there is any in current cell
 				if p.sprite is not None:
 					screen.blit(p.sprite, p.rect)
+
+		# Draw vertical and horizontal numbers
 		for i in range(8):
 			acctstr = str(i)
-			acctfont = pygame.font.Font(None,24)
+			acctfont = pygame.font.Font(None, 24)
 			accttext = acctfont.render(acctstr, True, (0, 0, 0))
 			acctw, accth = acctfont.size(acctstr)
 			screen.blit(accttext, accttext.get_rect().move(self.rect.left + self.pcWidth * i + (self.pcWidth - acctw) / 2, self.rect.bottom + 2))
 			screen.blit(accttext, accttext.get_rect().move(self.rect.left - acctw - 2, self.rect.bottom - self.pcWidth * (i + 1) + (self.pcWidth - accth) / 2))
+
+		# Draw moves count
+		mcnt_str = 'Moves: ' + str(self.game.movesCount)
+		mcnt_font = pygame.font.Font(None, 24)
+		mcnt_txt = mcnt_font.render(mcnt_str, True, (0, 0, 0))
+		screen.blit(mcnt_txt, mcnt_txt.get_rect().move(self.rect.left, self.rect.top - mcnt_font.size(mcnt_str)[1]))
 
 	# Set .moveAvail and .chose vars in all pieces according to available moves
 	def paintAvailableMoves(self, curPiece = None, amoves = np.empty(0)):
 		amoves = np.empty(0) if amoves is None else amoves
 		for i in range(8):
 			for j in range(8):
-					self.pcs[i][j].moveAvail = False
-					self.pcs[i][j].chosen = False
+				self.pcs[i][j].moveAvail = False
+				self.pcs[i][j].chosen = False
 		if curPiece is not None and self.chosenPos is not curPiece.pos:
 			for m in amoves:
 				self.pcs[m[0]][m[1]].moveAvail = True
@@ -104,15 +116,19 @@ class ilChessBoard(object):
 		for i, r in enumerate(self.pcs):
 			for j, p in enumerate(r):
 				if p.mouseOver(event.pos):
-					if self.chosenPos is not None and event.button == 1:
+					if self.chosenPos is not None:
 						# attack
 						if self.game.move(self.chosenPos, [i, j]):
 							self.pcs[i][j].initPiece(self.pcs[self.chosenPos[0], self.chosenPos[1]].piece)
 							self.pcs[self.chosenPos[0], self.chosenPos[1]].reInitNone()
 							self.paintAvailableMoves()
-					else:
+							#if self.game.isCheck(): sys.exit()
+							break
+					if p.piece is not None and p.piece.side == self.game.turn:
 						if p.piece is None: self.paintAvailableMoves()
 						else: self.paintAvailableMoves(p.piece, p.piece.getAvailableMoves())
+					else:
+						self.paintAvailableMoves()
 
 	def onMouseUp(self, event):
 		pass
